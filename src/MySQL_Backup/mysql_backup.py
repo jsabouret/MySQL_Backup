@@ -50,6 +50,8 @@ class Bckp:
   def hotStandby(self):
     self.logger.info("Backing up using hotStandby")
 
+  def nobackup(self):
+    pass
 
   def mysqldump(self):
     if self.args["bckptyp"] == "full":
@@ -95,18 +97,16 @@ class Bckp:
         print("Backuplog: " + str(self.config.get('fs','backuplog')))
         print("Log_bin_index: " + self.config.get('mysql','log_bin_index'))
       shutil.copy2(binlog,self.config.get('fs','backuplog'))
-    print(self.purge_cmd)
-    #mycursor.execute(self.purge_cmd)
+    mycursor.execute(self.purge_cmd)
     mycursor.close()
-
-
+    self.logger.info("End of binlogs backup")
 
 class MySQLBackup:
   def __init__(self,**args):
     self.args = args
     self.connect = Mysql_enc_ini(**self.args)
     self.config = ConfigParser()
-    configfile = configfiledir + self.args["hostname"] + "_" + self.args["username"] + "_bckp.conf"
+    configfile = configfiledir + "/" + self.args["hostname"] + "_" + self.args["username"] + "_bckp.conf"
     if not path_exists(configfile):
       self.create_config(configfile)
     self.config.read(configfile)
@@ -145,59 +145,64 @@ class MySQLBackup:
       print("Program already running - Stopping process")
       self.logger.error("Program already running - Stopping process")
       exit()
-    snapshot = Snapshot(self.config)
-    Migrate(self.dbh,self.config,self.logger)
-    if self.backuptype == 'tar':
-      pass
-    elif self.backuptype == 'rsync':
-      self.logger.info("Creating snapshot for rsync backup")
-      if snapshot.create_lvm_snapshot() == 0:
-        self.logger.info("Mounting snapshot")
-        if snapshot.mountsnap() == 0:
-          self.logger.info("DB recovery")
-          if snapshot.mysql_recovery() == 0:
-            self.bckp.rsync()
-    elif self.backuptype == 'rsnap':
-      self.logger.info("Creating snapshot for rsnap backup")
-      if snapshot.create_lvm_snapshot() == 0:
-        self.logger.info("Mounting snapshot")
-        if snapshot.mountsnap() == 0:
-          self.logger.info("DB recovery")
-          if snapshot.mysql_recovery() == 0:
-            self.bckp.rsnap()
-    elif self.backuptype == 'snapshot':
-      self.logger.info("Creating snapshot")
-      if snapshot.create_lvm_snapshot() == 0:
-        self.logger.info("Mounting snapshot")
-        if snapshot.mountsnap() == 0:
-          self.logger.info("DB recovery")
-          if snapshot.mysql_recovery() == 0:
-            self.bckp.snapshot()
-    elif self.backuptype == 'tsm':
-      self.logger.info("Creating snapshot for TSM backup")
-      if snapshot.create_lvm_snapshot() == 0:
-        self.logger.info("Mounting snapshot")
-        if snapshot.mountsnap() == 0:
-          self.logger.info("DB recovery")
-          if snapshot.mysql_recovery() == 0:
-            self.bckp.tsm()
-    elif self.backuptype == 'hotStandBy':
-      self.logger.info("Creating snapshot for hotStandby")
-      if snapshot.create_lvm_snapshot() == 0:
-        self.logger.info("Mounting snapshot")
-        if snapshot.mountsnap() == 0:
-          self.logger.info("DB recovery")
-          if snapshot.mysql_recovery() == 0:
-            self.bckp.hotStandby()
+    if self.args["bckptyp"] == "logs":
+      self.bckp.log_backup()
     else:
-      self.bckp.mysqldump()
+      snapshot = Snapshot(self.config)
+      Migrate(self.dbh,self.config,self.logger)
+      if self.backuptype == 'nobackup':
+        pass
+      elif self.backuptype == 'tar':
+        pass
+      elif self.backuptype == 'rsync':
+        self.logger.info("Creating snapshot for rsync backup")
+        if snapshot.create_lvm_snapshot() == 0:
+          self.logger.info("Mounting snapshot")
+          if snapshot.mountsnap() == 0:
+            self.logger.info("DB recovery")
+            if snapshot.mysql_recovery() == 0:
+              self.bckp.rsync()
+      elif self.backuptype == 'rsnap':
+        self.logger.info("Creating snapshot for rsnap backup")
+        if snapshot.create_lvm_snapshot() == 0:
+          self.logger.info("Mounting snapshot")
+          if snapshot.mountsnap() == 0:
+            self.logger.info("DB recovery")
+            if snapshot.mysql_recovery() == 0:
+              self.bckp.rsnap()
+      elif self.backuptype == 'snapshot':
+        self.logger.info("Creating snapshot")
+        if snapshot.create_lvm_snapshot() == 0:
+          self.logger.info("Mounting snapshot")
+          if snapshot.mountsnap() == 0:
+            self.logger.info("DB recovery")
+            if snapshot.mysql_recovery() == 0:
+              self.bckp.snapshot()
+      elif self.backuptype == 'tsm':
+        self.logger.info("Creating snapshot for TSM backup")
+        if snapshot.create_lvm_snapshot() == 0:
+          self.logger.info("Mounting snapshot")
+          if snapshot.mountsnap() == 0:
+            self.logger.info("DB recovery")
+            if snapshot.mysql_recovery() == 0:
+              self.bckp.tsm()
+      elif self.backuptype == 'hotStandBy':
+        self.logger.info("Creating snapshot for hotStandby")
+        if snapshot.create_lvm_snapshot() == 0:
+          self.logger.info("Mounting snapshot")
+          if snapshot.mountsnap() == 0:
+            self.logger.info("DB recovery")
+            if snapshot.mysql_recovery() == 0:
+              self.bckp.hotStandby()
+      else:
+        self.bckp.mysqldump()
     self.dbh.close()
     os.remove(self.pidfile)
 
   def create_config(self,configfile):
     self.config.read_string(default_conf)
     mycnf = input("Give the location of the main my.cnf file: ")
-    basisbackupdir = input("Give the destination of your backups (e. G. /backups/): ")
+    basisbackupdir = input("Give the destination of your backups (e. G. /backups): ")
     print("Chose you backup type")
     for key, value in backup_type.items():
       print(key + "  - " + value)
@@ -208,13 +213,12 @@ class MySQLBackup:
     self.config.set('mysql','dbuser',str(self.args["username"]))
     self.config.set('mysql','dbserver',str(self.args["hostname"]))
     self.config.set('fs','basisbackupdir',basisbackupdir)
-    self.config.set('fs','backupdir',basisbackupdir + "mysql_backup/")
-    self.config.set('fs','backuplog',basisbackupdir + "log/")
-    self.config.set('fs','backupusr',basisbackupdir + "dump/")
+    self.config.set('fs','backupdir',basisbackupdir + "/mysql_backup")
+    self.config.set('fs','backuplog',basisbackupdir + "/log")
+    self.config.set('fs','backupusr',basisbackupdir + "/dump")
     self.config.set('misc','configfiledir',configfiledir)
     self.config.set('misc','configfile', configfile)
     self.config.set('misc','backuptype',backuptype)
-    print(configfile)
     fp=open(configfile,'w')
     self.config.write(fp)
     fp.close()
@@ -226,7 +230,7 @@ def args_list():
   parse.add_argument("-d","--db",dest='database',action='store',default='mysql',help='Database name.')
   parse.add_argument("-P","--port",dest='port',action='store',default='3306',help='Port number.')
   parse.add_argument("-D","--debug",type=int,dest='debug',action='store',default=0,help='Debugging mode.')
-  parse.add_argument("bckptyp",type=str,action='store',default='full',help='Full or log backup')
+  parse.add_argument("bckptyp",type=str,action='store',default='full',help='Full or logs backup')
   args = parse.parse_args()
   return args
 

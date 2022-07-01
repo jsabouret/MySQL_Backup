@@ -11,7 +11,7 @@
 # MySQL server uses. If a non-empty host name other than "localhost" is
 # provided, the socket path is ignored.
 #
-# Please set all directory path with a last '/'   e.G. /var/log/mysql/
+# Please set all directory path with a last '/'   e.G. /var/log/mysql
 
 
 
@@ -39,14 +39,15 @@
 # Other configuration options
 #
 # Possible value for backuptype
-# 'tar'  ==> create a tar package
-# 'rsync' ==> synchronizes the datadir to another local directory
-# 'rsnap' ==> Use rsnap for Backup
-# 'snap' ==> Create only a snapshot
-# 'tsm' ==> backup the snapshot to TSM
+# 'nobackup'   ==> do nothing just for testing purposes
+# 'tar'        ==> create a tar package
+# 'rsync'      ==> synchronizes the datadir to another local directory
+# 'rsnap'      ==> Use rsnap for Backup
+# 'snap'       ==> Create only a snapshot
+# 'tsm'        ==> backup the snapshot to TSM
 # 'hotStandBy' ==> Synchronizes the Datadir with another MySQL server
-#                       'destsrv' ==> distant server
-#                       'destsrvdir' ==> Datadir on distant server
+#                       'destsrv'     ==> distant server
+#                       'destsrvdir'  ==> Datadir on distant server
 #                       'destsrvproc' ==> MySQL service name on remote server e.G.(mysqld@europe, or mysqld)
 #
 # for LZMA:
@@ -70,7 +71,7 @@ version='0.5'
 release='0'
 creation_date='2022-06-07'
 build_date='2022-06-15'
-configfiledir='etc/'
+configfiledir='etc'
 mountsfile='/proc/mounts'
 cmds = (
 'lvcreate',
@@ -110,7 +111,7 @@ lvnmr = 100%%FREE
 
 [fs]
 xfs = 0
-mountdir = var/tmp/mysql_backup/mnt/
+mountdir = var/tmp/mysql_backup/mnt
 basisbackupdir =
 backupdir =
 backuplog =
@@ -120,7 +121,7 @@ relpath =
 [tools]
 
 [misc]
-configfiledir = etc/
+configfiledir = etc
 configfile =
 backuptype = mysqldump
 destsrv =
@@ -143,14 +144,14 @@ recover_socket = mysqlsnap.sock
 skip_flush_tables = 0
 extra_flush_tables = 0
 skip_mycnf = 0
-hooksdir = usr/share/mysql_backup/
+hooksdir = usr/share/mysql_backup
 skip_hooks = 0
 keep_snapshot = 0
 keep_mount = 0
 quiet = 0
 
 [logging]
-logdir = var/log/mysql/
+logdir = var/log/mysql
 logfile = var/log/mysql/backup_
 log_method = console
 syslog_socktype = native
@@ -160,6 +161,7 @@ syslog_remotehost =
 [mycnf]
 '''
 backup_type = {
+  'nobackup':'Don\'t do anything, just creating configfile and connection string',
   'mysqldump':'Backup with mysqldump rquires mysql-community-common',
   'tar': 'Backup with tar package & LVM2',
   'rsync': 'Backup with rsync package & LVM2',
