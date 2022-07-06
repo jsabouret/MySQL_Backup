@@ -71,7 +71,7 @@ version='0.5'
 release='0'
 creation_date='2022-06-07'
 build_date='2022-06-15'
-configfiledir='etc'
+configfiledir='/etc'
 mountsfile='/proc/mounts'
 cmds = (
 'lvcreate',
@@ -100,6 +100,7 @@ mycnf =
 mysqld_safe = /usr/sbin/mysqld
 master =
 log_bin_index =
+log_basename =
 database = mysql
 
 [lvm]
@@ -111,7 +112,7 @@ lvnmr = 100%%FREE
 
 [fs]
 xfs = 0
-mountdir = var/tmp/mysql_backup/mnt
+mountdir = /var/tmp/mysql_backup/mnt
 basisbackupdir =
 backupdir =
 backuplog =
@@ -121,14 +122,15 @@ relpath =
 [tools]
 
 [misc]
-configfiledir = etc
-configfile =
 backuptype = mysqldump
+backup2keep = 15
+configfiledir = /etc
+configfile =
 destsrv =
 destsrvdir =
 destsrvproc =
 optfile = /opt/tivoli/tsm/client/ba/bin/dsm_mysql.opt
-mysql_backup_pid = var/run/mysql_backup.pid
+mysql_backup_pid = /var/run/mysql_backup.pid
 prefix = backup
 suffix = _mysql
 tararg = cvf
@@ -144,15 +146,15 @@ recover_socket = mysqlsnap.sock
 skip_flush_tables = 0
 extra_flush_tables = 0
 skip_mycnf = 0
-hooksdir = usr/share/mysql_backup
+hooksdir = /usr/share/mysql_backup
 skip_hooks = 0
 keep_snapshot = 0
 keep_mount = 0
 quiet = 0
 
 [logging]
-logdir = var/log/mysql
-logfile = var/log/mysql/backup_
+logdir = /var/log/mysql
+logfile = /var/log/mysql/backup_
 log_method = console
 syslog_socktype = native
 syslog_facility =

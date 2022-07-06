@@ -60,7 +60,3 @@ class Migrate:
     mycursor2.close()
     mycursor3.close()
     f.close()
-    #### File cleaning ######
-    self.logger.info("Purging user account backup files older than " + str(bckp2keep) + " days")
-    cmd = "find " + bckp_dir + " -name \"user*sql\" -mtime +" + str(bckp2keep) + " -delete"
-    os.system(cmd)

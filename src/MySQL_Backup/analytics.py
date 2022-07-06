@@ -27,12 +27,15 @@ class Analytics():
       filepath = os.path.split(self.config.get('mycnf','log_bin_index'))
       if filepath[0] == "":
         dblogs = self.config.get('mycnf','datadir')
-        log_bin_index = dblogs + "/" + self.config.get('mycnf','log_bin_index')
+        log_basename = self.config.get('mycnf','log_bin_index')
+        log_bin_index = dblogs + "/" + log_basename
       else:
         dblogs = filepath[0]
         log_bin_index = self.config.get('mycnf','log_bin_index')
+        log_basename = filepath[1]
       self.config.set('mysql','dblogs',dblogs)
       self.config.set('mysql','log_bin_index',log_bin_index)
+      self.config.set('mysql','log_basename',log_basename)
     if self.config.get('mycnf','log_error') != 'stderr':
       filepath = os.path.split(self.config.get('mycnf','log_error'))
       self.config.set('logging','logdir',filepath[0])
@@ -41,6 +44,8 @@ class Analytics():
       self.config.set('logging','logdir','var/log/mysql')
       self.config.set('logging','logfile',self.config.get('logging','logdir') + '/backup_')
     self.config.set('mysql','dbdata',self.config.get('mycnf','datadir'))
+    if self.config.get('mycnf','datadir')[-1] == '/':
+      self.config.set('mysql','dbdata',self.config.get('mycnf','datadir')[:-1])
     self.dirs.append(self.config.get('mysql','dbdata'))
     for cmd in cmds:
       path_to_cmd = shutil.which(cmd)
@@ -53,8 +58,8 @@ class Analytics():
     if any(myvgs):
       self.config.set('lvm','vgname',myvgs[self.dirs[0]]["vgname"])
       self.config.set('lvm','lvname',myvgs[self.dirs[0]]["lvname"])
-    #self.config.add_section('analytics')
-    #self.config.set('analytics','status','done')
+    self.config.add_section('analytics')
+    self.config.set('analytics','status','done')
     fp=open(self.config.get('misc','configfile'),'w')
     self.config.write(fp)
     fp.close()
@@ -71,12 +76,17 @@ class Analytics():
         ct = 0
       else:
         self.dirs.append(config.get(section,self.keys[section]))
-    print(self.dirs)
     for dir in self.dirs:
-      filepath = os.path.split(dir)
-      if filepath[0] != "":
-        if not path_exists(filepath[0]):
-          os.makedirs(filepath[0])
+      if dir:
+        if "pid" in dir:
+          filepath = os.path.split(dir)
+          print("Creating directory: " + str(filepath[0]))
+          if filepath[0] != "":
+            if not path_exists(filepath[0]):
+              os.makedirs(filepath[0], exist_ok = True)
+        else:
+          os.makedirs(dir, exist_ok = True)
+
 
   def grep(self,line,regex_pattern):
     pattern = re.compile(regex_pattern)

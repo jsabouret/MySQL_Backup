@@ -4,7 +4,7 @@
 import psutil
 import re
 
-dirs = ["dbdata","dblogs"]
+dirs = ["/dbdata","/dblogs"]
 mountsfile = "/proc/mounts"
 
 def grep(line,regex_pattern):
@@ -36,8 +36,8 @@ def vggroups(mountsfile,dirs):
         if grep(mnt,"vg") == 0:
           lines = mnt.split()
           flag = 1
-          res[dir]["vg"] = lines[0].split("/")[3].split("-")[0]
-          res[dir]["lv"] = lines[0].split("/")[3].split("-")[1]
+          res[dir]["vgname"] = lines[0].split("/")[3].split("-")[0]
+          res[dir]["lvname"] = lines[0].split("/")[3].split("-")[1]
   if flag == 0:
     res = {}
   print(res)

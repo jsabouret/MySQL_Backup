@@ -13,8 +13,10 @@ import datetime
 from snapshot import *
 import logging
 import shutil
+import fnmatch
+from search_file import Search_file
 from os.path import exists as path_exists
-
+from cleaning import Cleaner
 
 class Bckp:
   def __init__(self,backuptype,config,logger,conn_data,dbh,**args):
@@ -24,12 +26,64 @@ class Bckp:
     self.conn_data = conn_data
     self.dbh = dbh
     self.config = config
-    date = datetime.datetime.now()
-    self.datum = date.strftime("%Y-%m-%d_%H-%M")
-    self.purge_date = date.strftime("%Y-%m-%d %H:%M:%S")
+    self.date = datetime.datetime.now()
+    self.datum = self.date.strftime("%Y-%m-%d_%H-%M")
+    self.purge_date = self.date.strftime("%Y-%m-%d %H:%M:%S")
     self.purge_cmd = "PURGE BINARY LOGS BEFORE '" + str(self.purge_date) +"'"
     my_list = str(self.config.get('mysql','dbserver')).split('.')
     self.server = my_list[0]
+
+  def search_file(self,config,pitr,restoretype):
+    datum = pitr.split()
+    format = "%Y-%m-%d %H:%M:%S"
+    format2 = "%Y-%m-%d %H-%M"
+    pitr_dat = datetime.datetime.strptime(pitr, format)
+    rest_files = []
+    dbname = ""
+    if restoretype == "database":
+      dbname = input("You chose to restore only one database, please give the DB name: ")
+      filename = dbname + "_" + datum[0] + "*.sql"
+      bckp_files = self.find_files(filename,self.config.get('fs','backupdir'))
+      for file in bckp_files:
+        val = file.split("_")
+        val_dat = datetime.datetime.strptime(val[2] + " " + val[3].split(".")[0],format2)
+        if val_dat >= pitr_dat:
+          rest_files.append(file)
+      #  Parsing Logs
+      logdir = self.config.get('fs','backupdir') + "/log_" + datum[0]
+      filename = self.config.get('mysql','log_basename')+ "*"
+      log_files = self.find_files(filename,logdir)
+      for file in log_files:
+        rest_files.append(file)
+    else:
+      filename = self.config.get('mysql','dbserver') + "_user-" + self.datum[0] + "*sql"
+      bckp_files = self.find_files(filename,str(self.config.get('fs','backupusr')))
+      self.rest_files.append(bckp_files[-1])
+      filename = "*_" + self.datum[0] + "*.sql"
+      bckp_files = self.find_files(filename,self.config.get('fs','backupdir'))
+      for file in bckp_files:
+        val = file.split("_")
+        val_dat = datetime.datetime.strptime(val[2] + " " + val[3].split(".")[0],format2)
+        if val_dat >= pitr_dat:
+          self.rest_files.append(file)
+      #  Parsing Logs
+      logdir = filename,self.config.get('fs','backupdir') + "/log_" + self.datum[0]
+      filename = self.config.get('mysql','log_basename') + "*"
+      log_files = self.find_files(filename,logdir)
+      for file in log_files:
+        self.rest_files.append(file)
+    return rest_files,dbname
+  
+  def find_files(self,filename,search_path):
+    result = []
+    search_path = str(search_path)
+    print("Filename: " + filename)
+    print("Dir: " + search_path)
+    for root, dir, files in os.walk(search_path):
+      for name in files:
+        if fnmatch.fnmatch(name, filename):
+          result.append(os.path.join(root, name))
+    return result
 
   def rsync(self):
     self.logger.info("Backing up using rsync")
@@ -57,7 +111,7 @@ class Bckp:
     if self.args["bckptyp"] == "full":
       if self.config.get('tools','mysqldump') != "":
         self.logger.info("Backing up using mysqldump")
-        mysqldump = self.config.get('tools','mysqldump')
+        mysqldump = str(self.config.get('tools','mysqldump'))
         results = {}
 
         mycursor = self.dbh.cursor()
@@ -67,13 +121,10 @@ class Bckp:
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
         for row in myresult:
-          MySQLDump = mysqldump + "-aBc --create-options --add-drop-database --add-drop-table --verbose --routines --triggers --events --single-transaction --quick " + str(dumpargs) + " " + str(row[0]) + " > " + str(self.config.get('fs','backupdir')) + str(row[0]) + "_" + self.datum + ".sql"
-          #results[row[0]] = os.system(MySQLDump)
-          print(MySQLDump)
+          MySQLDump = mysqldump + " -aBc --create-options --add-drop-database --add-drop-table --verbose --routines --triggers --events --single-transaction --quick " + str(dumpargs) + " " + str(row[0]) + " > " + str(self.config.get('fs','backupdir')) + "/" +str(row[0]) + "_" + self.datum + ".sql"
+          results[row[0]] = os.system(str(MySQLDump))
         self.log_backup()
-        print(results)
         for key, res in results.items():
-          print("Key: "+str(key)+"--Value: "+str(res))
           if res != 0:
             self.logger.error("An error occured during backup of DB: "+ key + ". please check your backup files under " +  str(self.config.get('fs','backupdir')))
           else:
@@ -81,10 +132,54 @@ class Bckp:
         mycursor.close()
       else:
         print("mysqldump is not installed, please install package mysql-client")
-    else:
+    elif self.args["bckptyp"] == "logs":
       self.log_backup()
+    elif self.args["bckptyp"] == "restore":
+      print("Begin restore")
+      rest_type = input("Please give the restore type wished, full or database: ")
+      pitr = input("Give the point in time to restore to. (format: 2022-06-28 14:25:50): ")
+      if rest_type == "full":
+        service = input("PLease give the service name of your MySQL database. (mysql.service, mysqld.service or mysql@instance.service): ")
+        self.logger.info("Trying to save the last logs if possible")
+        print("Trying to save the last logs if possible")
+        self.log_backup()
+        self.logger.info("Stopping MySQL server")
+        print("Stopping MySQL server")
+        cmd = "systemctl stop " + service
+        res = os.system(cmd)
+        if res == 0:
+          self.logger.info("MySQL is now stopped")
+          print("MySQL is now stopped")
+        else:
+          self.logger.info("MySQL could not be stopped")
+          resp = input("MySQL could not be stopped, please confirm any mysql processes are stoppped, once stopped or killed, answer: yes")
+          if resp != "yes":
+            self.logger.info("MySQL could not be stopped, aborting")
+            print("MySQL could not be stopped, please try to kill any processes and restart the restore. ")
+            exit(1)
+        self.logger.info("Searching for the needed backup files")
+        print("Searching for the needed backup files")
+        rest_files,dbname = Search_file(self.config,pitr,rest_type)
+        self.logger.info("Starting restore of the full MySQL server")
+        print("Starting restore of the full MySQL server")
+        for file in rest_files:
+          print(file)
+      elif rest_type == "database":
+        self.logger.info("Trying to save the last logs if possible")
+        print("Trying to save the last logs if possible")
+        self.log_backup()
+        self.logger.info("Searching for the needed backup files")
+        print("Searching for the needed backup files")
+        rest_files,dbname = Search_file(self.config,pitr,rest_type)
+        self.logger.info("Starting restore of database" + dbname)
+        print("Starting restore of database" + dbname)
+        for file in rest_files:
+          print(file)
+    else:
+      print("You probably misstype the restore type, please start over.")
 
   def log_backup(self):
+    logdir = "log_" + self.date.strftime("%Y-%m-%d")
     self.logger.info("Backing up binlogs")
     mycursor = self.dbh.cursor()
     mycursor.execute("FLUSH BINARY LOGS")
@@ -96,7 +191,10 @@ class Bckp:
         print("binlog: " + str(binlog))
         print("Backuplog: " + str(self.config.get('fs','backuplog')))
         print("Log_bin_index: " + self.config.get('mysql','log_bin_index'))
-      shutil.copy2(binlog,self.config.get('fs','backuplog'))
+      logpath = self.config.get('fs','backuplog') + "/" + logdir
+      if not path_exists(logpath):
+        os.makedirs(logpath, exist_ok = True)
+      shutil.copy2(binlog,logpath)
     mycursor.execute(self.purge_cmd)
     mycursor.close()
     self.logger.info("End of binlogs backup")
@@ -106,6 +204,7 @@ class MySQLBackup:
     self.args = args
     self.connect = Mysql_enc_ini(**self.args)
     self.config = ConfigParser()
+    self.home = os.environ['HOME']
     configfile = configfiledir + "/" + self.args["hostname"] + "_" + self.args["username"] + "_bckp.conf"
     if not path_exists(configfile):
       self.create_config(configfile)
@@ -116,14 +215,14 @@ class MySQLBackup:
     self.debug = self.args['debug']
     my_list = str(self.dbserver).split('.')
     self.server = my_list[0]
-    self.pwdfile = self.server + "_" + str(self.config.get('mysql','database')) + "_" + str(self.config.get('mysql','dbuser')) + ".pwd"
+    self.pwdfile = self.home + "/" + self.server + "_" + str(self.config.get('mysql','database')) + "_" + str(self.config.get('mysql','dbuser')) + ".pwd"
     self.conn_data = self.connect.decrypt(self.pwdfile)
     self.dbh = mysql.connector.connect(**self.conn_data)
     if not self.config.has_section('analytics'):
       Analytics(self.dbh,self.config)
       self.config.read(configfile)
     self.backuptype = self.config.get('misc','backuptype')
-    logfile = self.config.get('logging','logfile') + "_" + self.config.get('mysql','dbserver') + "_" + self.config.get('mysql','database') + ".log"
+    logfile = self.config.get('logging','logfile') + self.config.get('mysql','dbserver') + "_" + self.config.get('mysql','database') + "_" + self.args["bckptyp"] + ".log"
     self.logger = logging.getLogger()
     self.logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', '%d.%m.%Y %H:%M:%S')
@@ -142,7 +241,7 @@ class MySQLBackup:
         os.chmod(self.pidfile, 0o600)
         pid.close()
     else:
-      print("Program already running - Stopping process")
+      print("Program already running - Stopping process. If you're sure that the program is not running, Erase file: " + str(self.pidfile))
       self.logger.error("Program already running - Stopping process")
       exit()
     if self.args["bckptyp"] == "logs":
@@ -196,6 +295,11 @@ class MySQLBackup:
               self.bckp.hotStandby()
       else:
         self.bckp.mysqldump()
+    date = datetime.datetime.now()
+    self.datum = date.strftime("%Y-%m-%d_%H-%M")
+    if self.args["bckptyp"] == "full":
+      Cleaner(self.config,self.logger,self.backuptype)
+    self.logger.info("End of Backup on server " + self.dbserver + ": " + str(self.datum))
     self.dbh.close()
     os.remove(self.pidfile)
 
@@ -230,7 +334,7 @@ def args_list():
   parse.add_argument("-d","--db",dest='database',action='store',default='mysql',help='Database name.')
   parse.add_argument("-P","--port",dest='port',action='store',default='3306',help='Port number.')
   parse.add_argument("-D","--debug",type=int,dest='debug',action='store',default=0,help='Debugging mode.')
-  parse.add_argument("bckptyp",type=str,action='store',default='full',help='Full or logs backup')
+  parse.add_argument("bckptyp",type=str,action='store',default='full',help='Full or logs backup, restore')
   args = parse.parse_args()
   return args
 
