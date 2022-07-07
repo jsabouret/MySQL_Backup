@@ -14,7 +14,6 @@ from snapshot import *
 import logging
 import shutil
 import fnmatch
-from search_file import Search_file
 from os.path import exists as path_exists
 from cleaning import Cleaner
 
@@ -47,10 +46,10 @@ class Bckp:
       for file in bckp_files:
         val = file.split("_")
         val_dat = datetime.datetime.strptime(val[2] + " " + val[3].split(".")[0],format2)
-        if val_dat >= pitr_dat:
+        if val_dat <= pitr_dat:
           rest_files.append(file)
       #  Parsing Logs
-      logdir = self.config.get('fs','backupdir') + "/log_" + datum[0]
+      logdir = self.config.get('fs','backuplog') + "/log_" + datum[0]
       filename = self.config.get('mysql','log_basename')+ "*"
       log_files = self.find_files(filename,logdir)
       for file in log_files:
@@ -58,27 +57,26 @@ class Bckp:
     else:
       filename = self.config.get('mysql','dbserver') + "_user-" + self.datum[0] + "*sql"
       bckp_files = self.find_files(filename,str(self.config.get('fs','backupusr')))
-      self.rest_files.append(bckp_files[-1])
+      rest_files.append(bckp_files[-1])
       filename = "*_" + self.datum[0] + "*.sql"
       bckp_files = self.find_files(filename,self.config.get('fs','backupdir'))
       for file in bckp_files:
         val = file.split("_")
         val_dat = datetime.datetime.strptime(val[2] + " " + val[3].split(".")[0],format2)
         if val_dat >= pitr_dat:
-          self.rest_files.append(file)
+          print("File: " + file)
+          rest_files.append(file)
       #  Parsing Logs
-      logdir = filename,self.config.get('fs','backupdir') + "/log_" + self.datum[0]
+      logdir = filename,self.config.get('fs','backuplog') + "/log_" + self.datum[0]
       filename = self.config.get('mysql','log_basename') + "*"
       log_files = self.find_files(filename,logdir)
       for file in log_files:
-        self.rest_files.append(file)
+        rest_files.append(file)
     return rest_files,dbname
   
   def find_files(self,filename,search_path):
     result = []
     search_path = str(search_path)
-    print("Filename: " + filename)
-    print("Dir: " + search_path)
     for root, dir, files in os.walk(search_path):
       for name in files:
         if fnmatch.fnmatch(name, filename):
@@ -134,7 +132,12 @@ class Bckp:
         print("mysqldump is not installed, please install package mysql-client")
     elif self.args["bckptyp"] == "logs":
       self.log_backup()
-    elif self.args["bckptyp"] == "restore":
+    else:
+      print("You probably misstyped the backup type, retry it!")
+      self.logger.info("You probably misstyped the backup type, retry it!")
+  
+  def restore(self):
+      rest_files = []
       print("Begin restore")
       rest_type = input("Please give the restore type wished, full or database: ")
       pitr = input("Give the point in time to restore to. (format: 2022-06-28 14:25:50): ")
@@ -159,24 +162,26 @@ class Bckp:
             exit(1)
         self.logger.info("Searching for the needed backup files")
         print("Searching for the needed backup files")
-        rest_files,dbname = Search_file(self.config,pitr,rest_type)
+        rest_files,dbname = self.search_file(self.config,pitr,rest_type)
         self.logger.info("Starting restore of the full MySQL server")
         print("Starting restore of the full MySQL server")
+        print("Search results")
         for file in rest_files:
-          print(file)
+          print("File: " + file)
       elif rest_type == "database":
         self.logger.info("Trying to save the last logs if possible")
         print("Trying to save the last logs if possible")
         self.log_backup()
         self.logger.info("Searching for the needed backup files")
         print("Searching for the needed backup files")
-        rest_files,dbname = Search_file(self.config,pitr,rest_type)
+        rest_files,dbname = self.search_file(self.config,pitr,rest_type)
         self.logger.info("Starting restore of database" + dbname)
-        print("Starting restore of database" + dbname)
+        print("Starting restore of database " + dbname)
+        print("Search results")
         for file in rest_files:
-          print(file)
-    else:
-      print("You probably misstype the restore type, please start over.")
+          print("File: " + file)
+      else:
+        print("You probably misstype the restore type, please start over.")
 
   def log_backup(self):
     logdir = "log_" + self.date.strftime("%Y-%m-%d")
@@ -246,7 +251,7 @@ class MySQLBackup:
       exit()
     if self.args["bckptyp"] == "logs":
       self.bckp.log_backup()
-    else:
+    elif self.args["bckptyp"] == "full":
       snapshot = Snapshot(self.config)
       Migrate(self.dbh,self.config,self.logger)
       if self.backuptype == 'nobackup':
@@ -295,6 +300,8 @@ class MySQLBackup:
               self.bckp.hotStandby()
       else:
         self.bckp.mysqldump()
+    else:
+      self.bckp.restore()
     date = datetime.datetime.now()
     self.datum = date.strftime("%Y-%m-%d_%H-%M")
     if self.args["bckptyp"] == "full":

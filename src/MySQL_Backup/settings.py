@@ -87,7 +87,9 @@ cmds = (
 'rsnap',
 'umount',
 'dsmc',
-'mysqldump'
+'mysqldump',
+'mysqlbinlog',
+'mysqld'
 )
 
 default_conf ='''
