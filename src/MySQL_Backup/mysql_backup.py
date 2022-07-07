@@ -61,11 +61,14 @@ class Bckp:
       filename = "*_" + self.datum[0] + "*.sql"
       bckp_files = self.find_files(filename,self.config.get('fs','backupdir'))
       for file in bckp_files:
-        val = file.split("_")
-        val_dat = datetime.datetime.strptime(val[2] + " " + val[3].split(".")[0],format2)
-        if val_dat >= pitr_dat:
-          print("File: " + file)
-          rest_files.append(file)
+        if "cnf" not in file:
+          filepath = os.path.split(file)
+          dbname = filepath[1][0:-21]
+          val = filepath[1][len(dbname):-1].split("_")
+          if str(datum[0]) in file:
+            val_dat = datetime.datetime.strptime(val[1] + " " + val[2].split(".")[0],format2)
+            if val_dat <= pitr_dat:
+              rest_files.append(file)  
       #  Parsing Logs
       logdir = filename,self.config.get('fs','backuplog') + "/log_" + self.datum[0]
       filename = self.config.get('mysql','log_basename') + "*"
@@ -168,6 +171,10 @@ class Bckp:
         print("Search results")
         for file in rest_files:
           print("File: " + file)
+        self.logger.info("Restarting MySQL server")
+        print("Restarting MySQL server")
+        cmd = "systemctl start " + service
+        res = os.system(cmd)
       elif rest_type == "database":
         self.logger.info("Trying to save the last logs if possible")
         print("Trying to save the last logs if possible")
