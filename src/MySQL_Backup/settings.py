@@ -42,7 +42,7 @@
 # 'nobackup'   ==> do nothing just for testing purposes
 # 'tar'        ==> create a tar package
 # 'rsync'      ==> synchronizes the datadir to another local directory
-# 'rsnap'      ==> Use rsnap for Backup
+# 'borg'      ==> Use borg for Backup
 # 'snap'       ==> Create only a snapshot
 # 'tsm'        ==> backup the snapshot to TSM
 # 'hotStandBy' ==> Synchronizes the Datadir with another MySQL server
@@ -84,7 +84,7 @@ cmds = (
 'lzma',
 'bzip2',
 'rsync',
-'rsnap',
+'borg',
 'umount',
 'dsmc',
 'mysqldump',
@@ -105,6 +105,12 @@ log_bin_index =
 log_basename =
 database = mysql
 
+[borg]
+usage =
+encryption = 
+password_file = 
+init = 
+
 [lvm]
 vgname =
 lvname =
@@ -114,11 +120,13 @@ lvnmr = 100%%FREE
 
 [fs]
 xfs = 0
-mountdir = /var/tmp/mysql_backup/mnt
+mountdir = /tmp/mysql_backup/mnt
+recover_dir = /tmp/mysql_backup
 basisbackupdir =
 backupdir =
 backuplog =
 backupusr =
+borgdir =
 relpath =
 
 [tools]
@@ -131,6 +139,8 @@ configfile =
 destsrv =
 destsrvdir =
 destsrvproc =
+mysql_uid = 
+mysql_gid =
 optfile = /opt/tivoli/tsm/client/ba/bin/dsm_mysql.opt
 mysql_backup_pid = /var/run/mysql_backup.pid
 prefix = backup
@@ -140,7 +150,7 @@ tarsuffixarg =
 tarfilesuffix = .tar.gz
 compressarg = --stdout --verbose --best
 rsyncarg = -avWP --progress --human-readable --delete
-rsnaparg = 7
+borgarg = 7
 datefmt = %%Y%%m%%d_%%H%%M%%S
 innodb_recover = 1
 pidfile = /tmp/mysqlsnap_recoverserver.pid
@@ -169,21 +179,7 @@ backup_type = {
   'mysqldump':'Backup with mysqldump rquires mysql-community-common',
   'tar': 'Backup with tar package & LVM2',
   'rsync': 'Backup with rsync package & LVM2',
-  'rsnap': 'Backup with rsnap package & LVM2',
+  'borg': 'Backup with borg package & LVM2',
   'tsm': 'IBM Spectrum Protect (former TSM) & LVM2',
   'hotstandby': 'Backup on MySQL destination server & LVM2'
 }
-
-
-
-# Possible value for backuptype
-# 'tar'  ==> create a tar package
-# 'rsync' ==> synchronizes the datadir to another local directory
-# 'rsnap' ==> Use rsnap for Backup
-# 'snap' ==> Create only a snapshot
-# 'tsm' ==> backup the snapshot to TSM
-# 'hotStandBy' ==> Synchronizes the Datadir with another MySQL server
-#                       'destsrv' ==> distant server
-#                       'destsrvdir' ==> Datadir on distant server
-#                       'destsrvproc' ==> MySQL service name on remote server e.G.(mysqld@europe, or mysqld)
-#

@@ -17,7 +17,7 @@ class Cleaner:
     #### File cleaning ######
     bckp_dir = self.config.get('fs','backupusr')
     self.logger.info("Purging user account backup files older than " + str(self.bckp2keep) + " days")
-    cmd = "find " + bckp_dir + " -name \"user*sql\" -mtime +" + str(self.bckp2keep) + " -delete"
+    cmd = "find " + bckp_dir + " -name \"" + self.config.get('mysql','dbserver') + "_user*sql\" -mtime +" + str(self.bckp2keep) + " -delete"
     os.system(cmd)
 
     # Cleaning mysqldump backups
@@ -27,9 +27,12 @@ class Cleaner:
       self.logger.info("Purging mysqldump backup files and logs older than " + str(self.bckp2keep) + " days")
       cmd = "find " + backupdir + " -mtime +" + str(self.bckp2keep) + " -delete"
       os.system(cmd)
+    elif self.bckptyp == "borg":
+      pass
 
     # Cleaning empty diretories under log
     self.logger.info("Cleaning log directories and erase the empty one.")
+    backuplog = self.config.get('fs','backuplog')
     cmd = "find " + backuplog + " -name \"*mysql-bin*\" -mtime +" + str(self.bckp2keep) + " -delete"
     os.system(cmd)
     dirs = [f.path for f in os.scandir(backuplog) if f.is_dir()]

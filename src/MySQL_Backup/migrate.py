@@ -24,13 +24,13 @@ class Migrate:
     mycursor=self.dbh.cursor()
     mycursor2=self.dbh.cursor()
     mycursor3=self.dbh.cursor()
-    mycursor.execute("SELECT CAST(schema_name as CHAR(100)) FROM information_schema.schemata order by 1")
+    sql = "SELECT CAST(schema_name as CHAR(100)) FROM information_schema.schemata where schema_name not in ('mysql', 'information_schema', 'performance_schema', 'sys') order by 1;"
+    mycursor.execute(sql)
     myresult = mycursor.fetchall()
     for row in myresult:
-      if row[0] != 'information_schema' or row[0] != 'mysql' or row[0] != 'performance_schema' or row[0] == 'sys':
         sql = "CREATE DATABASE /*!32312 IF NOT EXISTS*/ " + str(row[0]) + " /*!40100 DEFAULT CHARACTER SET utf8mb4 */;\n"
         f.write(sql)
-    sql = "SELECT user, host FROM mysql.user"
+    sql = "SELECT user, host FROM mysql.user where User not like 'mysql%' order by 1;"
     mycursor.execute(sql)
     myresult = mycursor.fetchall()
     for row in myresult:
