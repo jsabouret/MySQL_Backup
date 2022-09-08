@@ -13,16 +13,12 @@ It stores an encrypted MySQL DB connection string file, that can be used after t
 
 ### Possible value for backuptype
 1. 'nobackup    ==> Do nothing on the database just for testing purposes
-2. 'tar'        ==> create a tar package
-3. 'rsync'      ==> synchronizes the datadir to another local directory
-4. 'rsnap'      ==> Use rsnap for Backup
-5. 'snap'       ==> Create only a snapshot
-6. 'tsm'        ==> backup the snapshot to IBM Protect (ex TSM)
-7. 'mysqldump'  ==> Backup using standard mysqldump
-8. 'hotStandBy' ==> Synchronizes the Datadir with another MySQL server
+2. 'borg'      ==> synchronizes the datadir to another local directory
+3. 'mysqldump'  ==> Backup using standard mysqldump
+4. 'hotStandBy' ==> Synchronizes the Datadir with another MySQL server
   1. 'destsrv'     ==> distant server
   2. 'destsrvdir'  ==> Datadir on distant server
-  3. 'destsrvproc' ==> MySQL service name on remote server e.G.(mysqld@europe, or mysqld)
+  3. 'destsrvproc' ==> MySQL service name on remote server e.G.(mysqld@instance, or mysqld)
 
 
 ## Prerequisites
@@ -41,15 +37,15 @@ This program must be ran for the first time from the CLI,
 
 python3 mysql_backup.py  -h
 usage: connect to mysql tools [-h] [-H HOSTNAME] [-u USERNAME] [-d DATABASE]
-                              [-P PORT] [-D DEBUG]
+                              [-P PORT] [-D DEBUG(0-1)]
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, --help                    show this help message and exit
   -H HOSTNAME, --host HOSTNAME  mysql server hostname.  Default: localhost
   -u USERNAME, --user USERNAME  connect to mysql server user. Default: root
   -d DATABASE, --db DATABASE    Database name. Default: mysql
   -P PORT, --port PORT          Port number. Default: 3306
-  -D DEBUG, --debug DEBUG       Debugging mode, check the program and don't do anything.  Default: 0
+  -D DEBUG, --debug DEBUG       Debugging mode, check the program and don't do anything.         Default: 0
   full|logs
 
 You will be prompted for the password on the first call.
@@ -58,6 +54,7 @@ As well as the locations of :
 > my.cnf
 > Backups destination
 > The backup type
+
 
 
 
