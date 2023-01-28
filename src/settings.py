@@ -133,7 +133,8 @@ relpath =
 
 [misc]
 backuptype = mysqldump
-backup2keep = 15
+backup2keep = 3
+weekly_bckp = 2
 configfiledir = /etc
 configfile =
 destsrv =

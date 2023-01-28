@@ -4,6 +4,7 @@
 import os
 from glob import glob
 from pathlib import Path
+from borgbackup import BorgBackup
 
 class Cleaner:
   def __init__(self,config,logger,bckptyp):
@@ -11,7 +12,8 @@ class Cleaner:
     self.logger = logger
     self.bckptyp = bckptyp
     self.bckp2keep = self.config.get('misc','backup2keep')
-    
+    self.weekly_bckp = self.config.get('misc','weekly_bckp')
+    self.borg = BorgBackup(self.config)
 
     # Cleaning user infos
     #### File cleaning ######
@@ -28,7 +30,8 @@ class Cleaner:
       cmd = "find " + backupdir + " -mtime +" + str(self.bckp2keep) + " -delete"
       os.system(cmd)
     elif self.bckptyp == "borg":
-      pass
+      self.logger.info("Purging BorgBackups older than " + str(self.bckp2keep) + " days")
+      self.borg.borgCleaner(self.config.get('fs','borgdir'))
 
     # Cleaning empty diretories under log
     self.logger.info("Cleaning log directories and erase the empty one.")

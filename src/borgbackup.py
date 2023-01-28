@@ -90,10 +90,11 @@ class BorgBackup:
     code, out, err  = self.runCmd(cmd)
     return code, out, err 
     
-  def borgCleaner(self,repoArchive, name, dirs, excludes):
-    '''borg prune -v --list --keep-daily=7'''
-    args = [self.borg,"prune","-v", "--list", "--keep-daily="+str(self.config.get('misc','backup2keep'))]
-    repoArchive += "::" + name
+  def borgCleaner(self,repoArchive):
+    dirs = []
+    excludes = []
+
+    args = [self.borg,"prune","-v", "--list", "--keep-daily="+str(self.config.get('misc','backup2keep')), "--keep-weekly="+str(self.config.get('misc','weekly_bckp'))]
     cmd = self.createCommand(args,repoArchive, dirs, excludes)
     status = call(cmd)
     return status

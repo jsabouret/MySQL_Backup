@@ -175,7 +175,7 @@ class Bckp:
       os.environ['BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK'] = "yes"
       os.environ['BORG_RELOCATED_REPO_ACCESS_IS_OK'] = "yes"
       self.log_backup()
-      bckp_name = self.server + "_borg_" + str(self.date.strftime("%Y-%m-%d"))
+      bckp_name = self.server + "_borg_" + str(self.date.strftime("%Y-%m-%d_%H-%M"))
       bckp_dirs.append(self.home)
       bckp_dirs.append(self.mountdir)
       bckp_dirs.append(self.config.get('fs','backuplog'))
