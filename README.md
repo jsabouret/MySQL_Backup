@@ -75,4 +75,5 @@ As well as the locations of :
 After this first initialization mysql_backup should be started from crontab. I recommend something like that
 
 0 0 * * * bash -c 'source ~/.bash_profile; source ~/.bashrc;/usr/bin/python3 /root/bin/MySQL_Backup/mysql_backup.py -Hmysqlserver full' > /var/log/mysql/backup_mysql2_full.err 2>&1
+
 */30 1-23 * * * bash -c 'source ~/.bash_profile; source ~/.bashrc;/usr/bin/python3 /root/bin/MySQL_Backup/mysql_backup.py -Hmysqlserver logs' > /var/log/mysql/backup_mysql2_logs.err 2>&1
