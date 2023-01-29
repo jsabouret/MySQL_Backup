@@ -50,12 +50,14 @@ Before you begin this guide you'll need the following:
 
 This program must be ran for the first time from the CLI,
 
-```python3 mysql_backup.py  -h
+```
+python3 mysql_backup.py  -h
 usage: connect to mysql tools [-h] [-H HOSTNAME] [-u USERNAME] [-d DATABASE]
                               [-P PORT] [-D DEBUG(0-1)]
 ```
 
-```optional arguments:
+```
+optional arguments:
   -h, --help                    show this help message and exit
   -H HOSTNAME, --host HOSTNAME  mysql server hostname.  Default: localhost
   -u USERNAME, --user USERNAME  connect to mysql server user. Default: root
