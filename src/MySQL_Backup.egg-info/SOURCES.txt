@@ -1,0 +1,16 @@
+LICENSE
+README.md
+pyproject.toml
+src/__init__.py
+src/analytics.py
+src/borgbackup.py
+src/cleaning.py
+src/migrate.py
+src/mysql_backup.py
+src/search_file.py
+src/settings.py
+src/snapshot.py
+src/MySQL_Backup.egg-info/PKG-INFO
+src/MySQL_Backup.egg-info/SOURCES.txt
+src/MySQL_Backup.egg-info/dependency_links.txt
+src/MySQL_Backup.egg-info/top_level.txt
