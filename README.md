@@ -1,5 +1,7 @@
 # MySQL Database backup program
 
+(c) Joel Sabouret
+
 ## Table of contents
 * [Introduction](#Introduction)
 * [Prerequisites](#Prerequisites)
@@ -12,19 +14,19 @@ It stores an encrypted MySQL DB connection string file, that can be used after t
 
 
 ### Possible value for backuptype
-> 'nobackup    ==> Do nothing on the database just for testing purposes
->
-> 'borg'      ==> synchronizes the datadir to another local directory
->
-> 'mysqldump'  ==> Backup using standard mysqldump
->
-> 'hotStandBy' ==> Synchronizes the Datadir with another MySQL server
->
-> - 'destsrv'     ==> distant server
->
-> - 'destsrvdir'  ==> Datadir on distant server
->
-> - 'destsrvproc' ==> MySQL service name on remote server e.G.(mysqld@instance, or mysqld)
+- 'nobackup    ==> Do nothing on the database just for testing purposes
+
+- 'borg'      ==> synchronizes the datadir to another local directory
+
+- 'mysqldump'  ==> Backup using standard mysqldump
+
+- 'hotStandBy' ==> Synchronizes the Datadir with another MySQL server
+
+- 'destsrv'     ==> distant server
+
+- 'destsrvdir'  ==> Datadir on distant server
+
+- 'destsrvproc' ==> MySQL service name on remote server e.G.(mysqld@instance, or mysqld)
 
 1. Borg
  -- Is using borgbackup, the program is generating a snapshot of the database datadir and back it up with borgbackup.
@@ -85,6 +87,8 @@ As well as the locations of :
 
 After this first initialization mysql_backup should be started from crontab. I recommend something like that
 
+```
 0 0 * * * bash -c 'source ~/.bash_profile; source ~/.bashrc;/usr/bin/python3 /root/bin/MySQL_Backup/mysql_backup.py -Hmysqlserver full' > /var/log/mysql/backup_mysql2_full.err 2>&1
 
 */30 1-23 * * * bash -c 'source ~/.bash_profile; source ~/.bashrc;/usr/bin/python3 /root/bin/MySQL_Backup/mysql_backup.py -Hmysqlserver logs' > /var/log/mysql/backup_mysql2_logs.err 2>&1
+```
