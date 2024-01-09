@@ -76,7 +76,7 @@ optional arguments:
                         Debugging mode, check the program and don't do anything.   
   full|logs|restore
 ```
-restore is only implemented in for MySQLdump backup type Version 0.0.1
+restore is only implemented in for MySQLdump backup type Version 0.5.0
 
 You will be prompted for the password on the first call.
 
